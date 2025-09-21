@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 class ProyekController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Menampilkan daftar semua proyek.
      */
     public function index()
     {
@@ -17,7 +17,7 @@ class ProyekController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Menampilkan form untuk membuat proyek baru.
      */
     public function create()
     {
@@ -25,28 +25,33 @@ class ProyekController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Menyimpan proyek baru ke database dengan status default.
      */
     public function store(Request $request)
     {
+        // Validasi tanpa 'status'
         $request->validate([
-            'nama_proyek' => 'required|string|max:255',
-            'klien' => 'required|string|max:255',
-            'nilai_kontrak' => 'required|numeric',
-            'tanggal_mulai' => 'required|date',
+            'nama_proyek'    => 'required|string|max:255',
+            'klien'          => 'required|string|max:255',
+            'nilai_kontrak'  => 'required|numeric',
+            'tanggal_mulai'  => 'required|date',
             'target_selesai' => 'required|date|after_or_equal:tanggal_mulai',
-            'status' => 'required|string',
-            'pic' => 'required|string|max:255',
+            'pic'            => 'required|string|max:255',
+            'no_pic'         => 'required|string|max:20',
         ]);
 
-        Proyek::create($request->all());
+        // Tambahkan status "Sedang Berjalan" secara otomatis
+        $data = $request->all();
+        $data['status'] = 'Sedang Berjalan';
+
+        Proyek::create($data);
 
         return redirect()->route('proyek.index')
                          ->with('success', 'Proyek baru berhasil ditambahkan.');
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Menampilkan form untuk mengedit proyek.
      */
     public function edit(Proyek $proyek)
     {
@@ -54,18 +59,20 @@ class ProyekController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Memperbarui data proyek di database.
      */
     public function update(Request $request, Proyek $proyek)
     {
+        // Validasi dengan 'status' karena bisa diubah saat edit
         $request->validate([
-            'nama_proyek' => 'required|string|max:255',
-            'klien' => 'required|string|max:255',
-            'nilai_kontrak' => 'required|numeric',
-            'tanggal_mulai' => 'required|date',
+            'nama_proyek'    => 'required|string|max:255',
+            'klien'          => 'required|string|max:255',
+            'nilai_kontrak'  => 'required|numeric|min:0',
+            'tanggal_mulai'  => 'required|date',
             'target_selesai' => 'required|date|after_or_equal:tanggal_mulai',
-            'status' => 'required|string',
-            'pic' => 'required|string|max:255',
+            'status'         => 'required|string', // Validasi status ditambahkan di sini
+            'pic'            => 'required|string|max:255',
+            'no_pic'         => 'required|string|max:20',
         ]);
 
         $proyek->update($request->all());
@@ -75,10 +82,16 @@ class ProyekController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Menghapus proyek dari database.
      */
     public function destroy(Proyek $proyek)
     {
+        // Disarankan menambahkan pengecekan sebelum menghapus
+        if ($proyek->pengeluarans()->count() > 0) {
+            return redirect()->route('proyek.index')
+                             ->with('error', 'Proyek tidak bisa dihapus karena memiliki data pengeluaran.');
+        }
+
         $proyek->delete();
 
         return redirect()->route('proyek.index')
@@ -86,7 +99,8 @@ class ProyekController extends Controller
     }
 
     /**
-     * Tandai proyek sebagai Selesai.
+     * Menandai proyek sebagai "Selesai".
+     * Menerima $id dari rute /proyek/{id}/selesai
      */
     public function tandaiSelesai($id)
     {
@@ -97,4 +111,3 @@ class ProyekController extends Controller
         return redirect()->route('proyek.index')->with('success', 'Status proyek berhasil diubah menjadi Selesai.');
     }
 }
-

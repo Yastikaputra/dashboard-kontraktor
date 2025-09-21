@@ -16,7 +16,8 @@ return new class extends Migration
             $table->date('tanggal_mulai');
             $table->date('target_selesai');
             $table->string('status');
-            $table->string('pic'); // Penanggung Jawab
+            $table->string('pic');
+            $table->string('no_pic'); // Penanggung Jawab
             $table->timestamps();
         });
     }

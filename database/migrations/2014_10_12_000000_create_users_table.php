@@ -10,13 +10,14 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
+    { // <-- Hanya ada satu baris ini
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('username')->unique(); // Diubah dari email ke username
-            $table->timestamp('email_verified_at')->nullable(); // Boleh dihapus jika tidak perlu
+            $table->string('username')->unique();
+            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('role')->default('user');
             $table->rememberToken();
             $table->timestamps();
         });

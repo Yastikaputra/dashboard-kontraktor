@@ -10,32 +10,29 @@ class UserSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     *
-     * @return void
      */
-    public function run()
+    public function run(): void
     {
-        // Membuat atau memperbarui Admin
+        // 1. Membuat User Admin (Kontraktor)
         User::updateOrCreate(
-            ['username' => 'admin'], // Kunci untuk mencari
+            ['username' => 'admin'],
             [
-                'name' => 'Administrator',
-                'email' => 'admin@example.com',
+                'name' => 'Admin Kontraktor',
+                // 'email' => 'admin@example.com', // BARIS INI HARUS DIHAPUS
                 'password' => Hash::make('admin123'),
                 'role' => 'admin',
             ]
         );
 
-        // Membuat atau memperbarui User Biasa
+        // 2. Membuat User Biasa (Owner)
         User::updateOrCreate(
-            ['username' => 'user1'], // Kunci untuk mencari
+            ['username' => 'owner'],
             [
-                'name' => 'User Biasa',
-                'email' => 'user1@example.com',
-                'password' => Hash::make('user123'),
+                'name' => 'Owner Proyek',
+                // 'email' => 'owner@example.com', // BARIS INI HARUS DIHAPUS
+                'password' => Hash::make('owner123'),
                 'role' => 'user',
             ]
         );
     }
 }
-

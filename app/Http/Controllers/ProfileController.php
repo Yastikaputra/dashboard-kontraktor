@@ -2,59 +2,90 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Http\RedirectResponse;
+use App\Models\Proyek;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\View\View;
 
-class ProfileController extends Controller
+class ProyekController extends Controller
 {
     /**
-     * Display the user's profile form.
+     * Menampilkan daftar proyek.
      */
-    public function edit(Request $request): View
+    public function index()
     {
-        return view('profile.edit', [
-            'user' => $request->user(),
-        ]);
+        $proyeks = Proyek::latest()->paginate(10);
+        return view('proyek.index', compact('proyeks'));
     }
 
     /**
-     * Update the user's profile information.
+     * Menampilkan form untuk membuat proyek baru.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function create()
     {
-        $request->user()->fill($request->validated());
+        return view('proyek.create');
+    }
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+    /**
+     * Menyimpan proyek baru ke database.
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'nama_proyek' => 'required|string|max:255',
+            'anggaran_proyek' => 'required|numeric|min:0',
+            'tanggal_mulai' => 'required|date',
+            'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
+            'pic' => 'required|string|max:255',
+            'nomer_pic' => 'required|string|max:20',
+        ]);
+
+        Proyek::create($request->all());
+
+        return redirect()->route('proyek.index')
+                         ->with('success', 'Proyek baru berhasil ditambahkan.');
+    }
+
+    /**
+     * Menampilkan form untuk mengedit proyek.
+     */
+    public function edit(Proyek $proyek)
+    {
+        return view('proyek.edit', compact('proyek'));
+    }
+
+    /**
+     * Memperbarui data proyek di database.
+     */
+    public function update(Request $request, Proyek $proyek)
+    {
+        $request->validate([
+            'nama_proyek' => 'required|string|max:255',
+            'anggaran_proyek' => 'required|numeric|min:0',
+            'tanggal_mulai' => 'required|date',
+            'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
+            'pic' => 'required|string|max:255',
+            'nomer_pic' => 'required|string|max:20',
+        ]);
+
+        $proyek->update($request->all());
+
+        return redirect()->route('proyek.index')
+                         ->with('success', 'Data proyek berhasil diperbarui.');
+    }
+
+    /**
+     * Menghapus proyek dari database.
+     */
+    public function destroy(Proyek $proyek)
+    {
+        // Tambahkan validasi, misalnya cek apakah ada pengeluaran terkait
+        if ($proyek->pengeluarans()->count() > 0) {
+            return redirect()->route('proyek.index')
+                             ->with('error', 'Proyek tidak bisa dihapus karena memiliki data pengeluaran terkait.');
         }
 
-        $request->user()->save();
+        $proyek->delete();
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
-    }
-
-    /**
-     * Delete the user's account.
-     */
-    public function destroy(Request $request): RedirectResponse
-    {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
-        ]);
-
-        $user = $request->user();
-
-        Auth::logout();
-
-        $user->delete();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return Redirect::to('/');
+        return redirect()->route('proyek.index')
+                         ->with('success', 'Proyek berhasil dihapus.');
     }
 }
