@@ -13,9 +13,6 @@ class Proyek extends Model
     protected $table = 'proyeks';
     protected $primaryKey = 'id_proyek';
 
-    /**
-     * Kolom yang diizinkan untuk diisi.
-     */
     protected $fillable = [
         'nama_proyek',
         'klien',
@@ -24,8 +21,9 @@ class Proyek extends Model
         'target_selesai',
         'status',
         'pic',
-        'no_pic' // <-- PASTIKAN BARIS INI ADA
+        'no_pic'
     ];
+
     /**
      * Relasi one-to-many ke Pengeluaran.
      */
@@ -35,29 +33,38 @@ class Proyek extends Model
     }
 
     /**
+     * [BARU] Relasi one-to-many ke Tagihan.
+     * Asumsi nama model adalah Tagihan dan foreign key-nya id_proyek.
+     */
+    public function tagihans()
+    {
+        return $this->hasMany(Tagihan::class, 'id_proyek', 'id_proyek');
+    }
+
+    /**
      * Accessor untuk menghitung sisa waktu proyek.
-     * Ini akan membuat properti 'sisa_waktu' bisa diakses.
      */
     public function getSisaWaktuAttribute()
-{
-    $sekarang = Carbon::now();
-    $tanggalSelesai = Carbon::parse($this->target_selesai);
+    {
+        $sekarang = Carbon::now();
+        $tanggalSelesai = Carbon::parse($this->target_selesai);
 
-    // Jika tanggal target sudah lewat
-    if ($sekarang->gt($tanggalSelesai)) {
-        return 'Waktu Habis';
+        if ($sekarang->gt($tanggalSelesai)) {
+            return 'Waktu Habis';
+        }
+        
+        return $sekarang->diffInDays($tanggalSelesai) . ' hari';
     }
     
-    // Menghitung selisih hari dari sekarang ke tanggal target
-    return $sekarang->diffInDays($tanggalSelesai) . ' hari';
-}
-    
     /**
-     * Method untuk menghitung total pengeluaran proyek.
+     * Method ini tidak akan kita gunakan lagi di view untuk efisiensi,
+     * tapi biarkan saja di sini jika diperlukan di tempat lain.
      */
     public function totalPengeluaran()
-{
-    // Ganti 'jumlah' menjadi 'total' agar sesuai dengan nama kolom di database
-    return $this->pengeluarans()->sum('total');
-}
+    {
+        // Menghitung total dari pengeluaran langsung dan tagihan
+        $totalPengeluaranLangsung = $this->pengeluarans()->sum('total');
+        $totalTagihan = $this->tagihans()->sum('nilai_tagihan'); // Asumsi nama kolom nilai_tagihan
+        return $totalPengeluaranLangsung + $totalTagihan;
+    }
 }

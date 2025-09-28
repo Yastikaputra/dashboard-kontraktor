@@ -12,9 +12,19 @@ class ProyekController extends Controller
      */
     public function index()
     {
-        $proyeks = Proyek::latest()->paginate(10);
+        // [DIUBAH] Menggunakan withSum untuk efisiensi query
+        // Ini akan mengambil total dari kolom 'total' di tabel pengeluarans
+        // dan total dari kolom 'nilai_tagihan' di tabel tagihans
+        // lalu menyimpannya sebagai properti baru di model Proyek.
+        $proyeks = Proyek::withSum('pengeluarans', 'total')
+                         ->withSum('tagihans', 'nilai_tagihan') // Asumsi nama kolom nilai_tagihan
+                         ->latest()
+                         ->paginate(10);
+                         
         return view('proyek.index', compact('proyeks'));
     }
+
+    // ... (sisa method lainnya tidak perlu diubah)
 
     /**
      * Menampilkan form untuk membuat proyek baru.
@@ -29,7 +39,6 @@ class ProyekController extends Controller
      */
     public function store(Request $request)
     {
-        // Validasi tanpa 'status'
         $request->validate([
             'nama_proyek'    => 'required|string|max:255',
             'klien'          => 'required|string|max:255',
@@ -40,7 +49,6 @@ class ProyekController extends Controller
             'no_pic'         => 'required|string|max:20',
         ]);
 
-        // Tambahkan status "Sedang Berjalan" secara otomatis
         $data = $request->all();
         $data['status'] = 'Sedang Berjalan';
 
@@ -63,14 +71,13 @@ class ProyekController extends Controller
      */
     public function update(Request $request, Proyek $proyek)
     {
-        // Validasi dengan 'status' karena bisa diubah saat edit
         $request->validate([
             'nama_proyek'    => 'required|string|max:255',
             'klien'          => 'required|string|max:255',
             'nilai_kontrak'  => 'required|numeric|min:0',
             'tanggal_mulai'  => 'required|date',
             'target_selesai' => 'required|date|after_or_equal:tanggal_mulai',
-            'status'         => 'required|string', // Validasi status ditambahkan di sini
+            'status'         => 'required|string',
             'pic'            => 'required|string|max:255',
             'no_pic'         => 'required|string|max:20',
         ]);
@@ -86,10 +93,9 @@ class ProyekController extends Controller
      */
     public function destroy(Proyek $proyek)
     {
-        // Disarankan menambahkan pengecekan sebelum menghapus
-        if ($proyek->pengeluarans()->count() > 0) {
+        if ($proyek->pengeluarans()->count() > 0 || $proyek->tagihans()->count() > 0) {
             return redirect()->route('proyek.index')
-                             ->with('error', 'Proyek tidak bisa dihapus karena memiliki data pengeluaran.');
+                             ->with('error', 'Proyek tidak bisa dihapus karena memiliki data pengeluaran atau tagihan.');
         }
 
         $proyek->delete();
@@ -100,7 +106,6 @@ class ProyekController extends Controller
 
     /**
      * Menandai proyek sebagai "Selesai".
-     * Menerima $id dari rute /proyek/{id}/selesai
      */
     public function tandaiSelesai($id)
     {

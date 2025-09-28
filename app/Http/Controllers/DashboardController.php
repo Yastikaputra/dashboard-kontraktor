@@ -2,68 +2,63 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Proyek;
 use App\Models\Pengeluaran;
-use App\Models\Tagihan;
+use App\Models\Tagihan; // Ini sekarang merepresentasikan Vendor
 use App\Models\Tukang;
+use Illuminate\Http\Request;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB; // Import DB Facade
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // STATISTIK UTAMA
-        $proyekBerjalan = Proyek::where('status', '!=', 'Selesai')->count();
+        // Card Statistik Utama
+        $proyekBerjalan = Proyek::where('status', 'Sedang Berjalan')->count();
         $proyekSelesai = Proyek::where('status', 'Selesai')->count();
-        $pengeluaranBulanIni = Pengeluaran::whereMonth('tanggal_struk', Carbon::now()->month)
-            ->whereYear('tanggal_struk', Carbon::now()->year)
-            ->sum('total');
-        $tagihanJatuhTempo = Tagihan::where('status_bayar', 'Belum Dibayar')
-            ->where('jatuh_tempo', '<', Carbon::now()->addDays(30))
-            ->count();
+        $pengeluaranBulanIni = Pengeluaran::whereMonth('tanggal_struk', now()->month)
+                                          ->whereYear('tanggal_struk', now()->year)
+                                          ->sum('total');
+        $totalVendors = Tagihan::count();
 
-        // LAPORAN KEUANGAN
+        // Laporan Keuangan
         $totalPemasukan = Proyek::sum('nilai_kontrak');
         $totalPengeluaran = Pengeluaran::sum('total');
         $totalUpahTukang = Tukang::sum('jumlah');
         $profitLoss = $totalPemasukan - ($totalPengeluaran + $totalUpahTukang);
 
-        // DATA UNTUK TABEL DI DASHBOARD
-        $proyekAktif = Proyek::where('status', '!=', 'Selesai')->latest()->take(5)->get();
-        $daftarTagihanJatuhTempo = Tagihan::where('status_bayar', 'Belum Dibayar')
-            ->whereDate('jatuh_tempo', '<=', Carbon::now()->addDays(30))
-            ->whereHas('proyek')
-            ->orderBy('jatuh_tempo', 'asc')
-            ->get();
-        $daftarSupplier = Tagihan::select('nama_supplier')->distinct()->get();
+        // Data untuk Grafik
+        $pengeluaranPerProyek = Proyek::withSum('pengeluarans', 'total')
+                                      ->has('pengeluarans')
+                                      ->get();
+        $chartLabels = $pengeluaranPerProyek->pluck('nama_proyek');
+        $chartValues = $pengeluaranPerProyek->pluck('pengeluarans_sum_total');
+        
+        $recentVendors = Tagihan::with('proyek')->latest()->take(5)->get();
 
-        // **FITUR BARU: Menyiapkan data untuk chart pengeluaran per proyek**
-        $chartData = Pengeluaran::join('proyeks', 'pengeluarans.id_proyek', '=', 'proyeks.id_proyek')
-            ->select('proyeks.nama_proyek', DB::raw('SUM(pengeluarans.total) as total_pengeluaran'))
-            ->groupBy('proyeks.nama_proyek')
-            ->pluck('total_pengeluaran', 'proyeks.nama_proyek');
+        // === [PERBAIKAN] Mengubah 'status' menjadi 'status_bayar' ===
+        // Mengambil data tagihan vendor yang belum lunas
+        $tagihanBelumLunas = Tagihan::where('status_bayar', '!=', 'Lunas')->with('proyek')->latest()->take(5)->get();
 
-        $chartLabels = $chartData->keys();
-        $chartValues = $chartData->values();
-
+        // Mengambil data upah tukang yang belum lunas (pastikan nama kolom status di tabel tukang juga benar)
+        // Jika nama kolom di tabel tukang berbeda, sesuaikan 'status_bayar' di bawah ini
+        $tukangBelumLunas = Tukang::where('status', '!=', 'Lunas')->with('proyek')->latest()->take(5)->get();
+        // === AKHIR PERBAIKAN ===
 
         return view('dashboard.index', compact(
             'proyekBerjalan',
             'proyekSelesai',
             'pengeluaranBulanIni',
-            'tagihanJatuhTempo',
+            'totalVendors',
             'totalPemasukan',
             'totalPengeluaran',
             'totalUpahTukang',
             'profitLoss',
-            'proyekAktif',
-            'daftarTagihanJatuhTempo',
-            'daftarSupplier',
-            'chartLabels', // Mengirim label chart ke view
-            'chartValues'  // Mengirim nilai chart ke view
+            'chartLabels',
+            'chartValues',
+            'recentVendors',
+            'tagihanBelumLunas',
+            'tukangBelumLunas'
         ));
     }
 }
-
