@@ -9,12 +9,19 @@ class Tukang extends Model
 {
     use HasFactory;
 
+    /**
+     * Nama tabel yang terhubung dengan model ini.
+     */
     protected $table = 'tukangs';
 
-    // **PERBAIKAN:** Beri tahu Laravel nama primary key yang benar
+    /**
+     * Primary key kustom untuk model ini.
+     */
     protected $primaryKey = 'id_tukang';
     
-    // Izinkan mass assignment
+    /**
+     * Kolom yang dapat diisi secara massal.
+     */
     protected $fillable = [
         'id_proyek',
         'nama_tukang',
@@ -25,12 +32,15 @@ class Tukang extends Model
     ];
 
     /**
-     * **PERBAIKAN BARU:** Mendefinisikan relasi many-to-one ke Proyek.
-     * Fungsi ini memberitahu Laravel bahwa setiap 'Tukang' terhubung ke satu 'Proyek'.
+     * Mendefinisikan relasi "belongsTo" ke model Proyek.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function proyek()
     {
-        return $this->belongsTo(Proyek::class, 'id_proyek', 'id_proyek');
+        // PENYESUAIAN: Menyederhanakan definisi relasi.
+        // Laravel akan secara otomatis menghubungkan 'id_proyek' di tabel ini
+        // dengan primary key (biasanya 'id') di tabel proyek.
+        return $this->belongsTo(Proyek::class, 'id_proyek');
     }
 }
-

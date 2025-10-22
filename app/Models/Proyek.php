@@ -13,6 +13,9 @@ class Proyek extends Model
     protected $table = 'proyeks';
     protected $primaryKey = 'id_proyek';
 
+    /**
+     * [PERBAIKAN] Menambahkan 'deskripsi' ke dalam fillable
+     */
     protected $fillable = [
         'nama_proyek',
         'klien',
@@ -21,8 +24,25 @@ class Proyek extends Model
         'target_selesai',
         'status',
         'pic',
-        'no_pic'
+        'no_pic',
+        'deskripsi'
     ];
+
+    /**
+     * [DITAMBAHKAN] Relasi many-to-many ke User (Owner).
+     * Mendefinisikan relasi sebaliknya dari model User.
+     */
+    public function users()
+    {
+        return $this->belongsToMany(
+            User::class,
+            'proyek_user',
+            'proyek_id',
+            'user_id',
+            'id_proyek',
+            'id'
+        );
+    }
 
     /**
      * Relasi one-to-many ke Pengeluaran.
@@ -33,12 +53,11 @@ class Proyek extends Model
     }
 
     /**
-     * [BARU] Relasi one-to-many ke Tagihan.
-     * Asumsi nama model adalah Tagihan dan foreign key-nya id_proyek.
+     * Relasi one-to-many ke Tukang.
      */
-    public function tagihans()
+    public function tukangs()
     {
-        return $this->hasMany(Tagihan::class, 'id_proyek', 'id_proyek');
+        return $this->hasMany(Tukang::class, 'id_proyek', 'id_proyek');
     }
 
     /**
@@ -54,17 +73,5 @@ class Proyek extends Model
         }
         
         return $sekarang->diffInDays($tanggalSelesai) . ' hari';
-    }
-    
-    /**
-     * Method ini tidak akan kita gunakan lagi di view untuk efisiensi,
-     * tapi biarkan saja di sini jika diperlukan di tempat lain.
-     */
-    public function totalPengeluaran()
-    {
-        // Menghitung total dari pengeluaran langsung dan tagihan
-        $totalPengeluaranLangsung = $this->pengeluarans()->sum('total');
-        $totalTagihan = $this->tagihans()->sum('nilai_tagihan'); // Asumsi nama kolom nilai_tagihan
-        return $totalPengeluaranLangsung + $totalTagihan;
     }
 }

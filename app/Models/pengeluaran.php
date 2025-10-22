@@ -20,18 +20,24 @@ class Pengeluaran extends Model
         'id_proyek',
         'toko',
         'total',
-        'items', // <-- Pastikan ini ada
+        'items',
         'tanggal_struk',
-        'waktu_input', // <-- Pastikan ini juga ada
+        'waktu_input',
         'bukti_struk',
+        'status_bayar',
+        'tanggal_bayar', // [PERBAIKAN] Tambahkan kolom ini
     ];
 
     /**
      * Mendefinisikan relasi ke model Proyek.
      */
+    protected $casts = [
+        'tanggal_struk' => 'date',
+        'tanggal_bayar' => 'date',
+    ];
+
     public function proyek()
     {
         return $this->belongsTo(Proyek::class, 'id_proyek', 'id_proyek');
     }
 }
-

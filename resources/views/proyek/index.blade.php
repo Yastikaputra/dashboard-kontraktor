@@ -13,7 +13,7 @@
         </a>
     </div>
 
-    {{-- Notifikasi Sukses atau Error --}}
+    {{-- Notifikasi --}}
     @if(session('success'))
         <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg" role="alert">
             <p class="font-bold">Sukses!</p>
@@ -36,7 +36,7 @@
                         <th class="py-3 px-4 text-left text-sm font-semibold text-gray-600 uppercase">Nama Proyek</th>
                         <th class="py-3 px-4 text-left text-sm font-semibold text-gray-600 uppercase">Anggaran</th>
                         <th class="py-3 px-4 text-left text-sm font-semibold text-gray-600 uppercase">Total Pengeluaran</th>
-                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-600 uppercase">Sisa Anggaran</th> {{-- [BARU] --}}
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-600 uppercase">Sisa Anggaran</th>
                         <th class="py-3 px-4 text-left text-sm font-semibold text-gray-600 uppercase">Sisa Waktu</th>
                         <th class="py-3 px-4 text-left text-sm font-semibold text-gray-600 uppercase">PIC</th>
                         <th class="py-3 px-4 text-left text-sm font-semibold text-gray-600 uppercase">Status</th>
@@ -45,18 +45,15 @@
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @forelse ($proyeks as $proyek)
-                    {{-- [DIUBAH] Logika untuk menghitung total dan sisa anggaran dipindahkan ke sini --}}
-                    @php
-                        // Hitung total pengeluaran dari hasil eager loading
-                        $totalPengeluaran = ($proyek->pengeluarans_sum_total ?? 0) + ($proyek->tagihans_sum_nilai_tagihan ?? 0);
-                        // Hitung sisa anggaran
-                        $sisaAnggaran = $proyek->nilai_kontrak - $totalPengeluaran;
-                    @endphp
                     <tr class="hover:bg-gray-50">
                         <td class="py-3 px-4 font-medium text-gray-800">{{ $proyek->nama_proyek }}</td>
                         <td class="py-3 px-4 text-gray-600">Rp. {{ number_format($proyek->nilai_kontrak, 0, ',', '.') }}</td>
-                        <td class="py-3 px-4 text-red-600 font-semibold">Rp. {{ number_format($totalPengeluaran, 0, ',', '.') }}</td>
-                        {{-- [BARU] Tampilkan Sisa Anggaran --}}
+                        <td class="py-3 px-4 text-red-600 font-semibold">
+                            Rp. {{ number_format($proyek->total_pengeluaran ?? 0, 0, ',', '.') }}
+                        </td>
+                        @php
+                            $sisaAnggaran = $proyek->nilai_kontrak - ($proyek->total_pengeluaran ?? 0);
+                        @endphp
                         <td class="py-3 px-4 font-semibold {{ $sisaAnggaran < 0 ? 'text-red-600' : 'text-green-600' }}">
                             Rp. {{ number_format($sisaAnggaran, 0, ',', '.') }}
                         </td>
@@ -71,18 +68,16 @@
                             </span>
                         </td>
                         <td class="py-3 px-4 flex items-center space-x-2">
+                            <a href="{{ route('proyek.show', $proyek->id_proyek) }}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded text-xs">View</a>
                             @if($proyek->status !== 'Selesai')
-                                <form action="{{ route('proyek.selesai', $proyek->id_proyek) }}" method="POST" onsubmit="return confirm('Anda yakin ingin menandai proyek ini sebagai selesai?');">
+                                {{-- [PERBAIKAN] Memastikan nama route yang dipanggil adalah 'proyek.tandaiSelesai' --}}
+                                <form action="{{ route('proyek.tandaiSelesai', $proyek->id_proyek) }}" method="POST" onsubmit="return confirm('Anda yakin?');">
                                     @csrf
-                                    <button type="submit" class="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded text-xs">
-                                        Selesai
-                                    </button>
+                                    <button type="submit" class="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded text-xs">Selesai</button>
                                 </form>
                             @endif
-                            
                             <a href="{{ route('proyek.edit', $proyek->id_proyek) }}" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded text-xs">Edit</a>
-                            
-                            <form action="{{ route('proyek.destroy', $proyek->id_proyek) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus proyek ini?');">
+                            <form action="{{ route('proyek.destroy', $proyek->id_proyek) }}" method="POST" onsubmit="return confirm('Yakin hapus proyek ini?');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded text-xs">Hapus</button>
@@ -91,17 +86,17 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="text-center py-6 text-gray-500">Tidak ada data proyek yang dapat ditampilkan.</td> {{-- Colspan diubah ke 8 --}}
+                        <td colspan="8" class="text-center py-6 text-gray-500">Tidak ada data proyek.</td>
                     </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
         
-        {{-- Link Pagination --}}
         <div class="mt-6">
             {{ $proyeks->links() }}
         </div>
     </div>
 </div>
 @endsection
+

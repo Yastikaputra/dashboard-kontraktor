@@ -12,16 +12,20 @@ class User extends Authenticatable
 
     /**
      * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
-        'username', // Pastikan ini ada
+        'username', // Pastikan kolom ini sesuai dengan migrasi Anda
         'password',
-        'role', // Tetap ada jika Anda menggunakan role
+        'role',     // Atribut untuk membedakan 'admin' dan 'user' (owner)
     ];
 
     /**
      * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
@@ -30,10 +34,28 @@ class User extends Authenticatable
 
     /**
      * The attributes that should be cast.
+     *
+     * @var array<string, string>
      */
     protected $casts = [
-        // Cast ini tetap ada karena kolomnya ada di migrasi
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    /**
+     * Mendefinisikan relasi many-to-many antara User (Owner) dan Proyek.
+     * Seorang user bisa memiliki akses ke banyak proyek.
+     */
+    public function proyeks()
+    {
+        // [DISESUAIKAN] Menambahkan semua parameter untuk kejelasan relasi
+        return $this->belongsToMany(
+            Proyek::class,
+            'proyek_user',
+            'user_id',
+            'proyek_id',
+            'id',
+            'id_proyek'
+        );
+    }
 }

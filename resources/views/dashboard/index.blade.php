@@ -8,6 +8,7 @@
         <p class="text-gray-500 mt-1">Ringkasan aktivitas proyek Anda.</p>
     </div>
 
+    {{-- Bagian Statistik Utama (Tidak ada perubahan) --}}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 flex items-center space-x-4 transition-transform transform hover:scale-105">
             <div class="bg-blue-100 p-3 rounded-full">
@@ -49,7 +50,8 @@
             </div>
         </div>
     </div>
-
+    
+    {{-- Bagian Laporan Keuangan & Grafik (Tidak ada perubahan) --}}
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
         <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
             <h3 class="font-bold text-lg mb-4 text-gray-700">Laporan Keuangan</h3>
@@ -81,6 +83,7 @@
         </div>
     </div>
 
+    {{-- Bagian Vendor Baru (Tidak ada perubahan) --}}
     <div class="grid grid-cols-1 gap-8">
         <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
             <h3 class="font-bold text-lg mb-4 text-gray-700">Vendor Baru Ditambahkan</h3>
@@ -89,7 +92,6 @@
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="text-left py-2 px-4 text-sm font-semibold text-gray-600 uppercase">Nama Vendor</th>
-                            <th class="text-left py-2 px-4 text-sm font-semibold text-gray-600 uppercase">Proyek</th>
                             <th class="text-left py-2 px-4 text-sm font-semibold text-gray-600 uppercase">Telepon</th>
                             <th class="text-left py-2 px-4 text-sm font-semibold text-gray-600 uppercase">Daerah</th>
                         </tr>
@@ -98,7 +100,6 @@
                         @forelse($recentVendors as $vendor)
                             <tr>
                                 <td class="py-3 px-4">{{ $vendor->nama_vendor }}</td>
-                                <td class="py-3 px-4">{{ $vendor->proyek->nama_proyek ?? 'N/A' }}</td>
                                 <td class="py-3 px-4">{{ $vendor->nomor_telepon ?? '-' }}</td>
                                 <td class="py-3 px-4">{{ $vendor->daerah ?? '-' }}</td>
                             </tr>
@@ -113,42 +114,59 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+    {{-- [DIUBAH] Baris Baru untuk Tagihan Jatuh Tempo --}}
+    <div class="grid grid-cols-1 gap-8">
         <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-            <h3 class="font-bold text-lg mb-4 text-gray-700">Tagihan Vendor Belum Lunas</h3>
+            <h3 class="font-bold text-lg mb-4 text-gray-700">Tagihan Jatuh Tempo</h3>
             <div class="overflow-x-auto">
                 <table class="min-w-full">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="text-left py-2 px-4 text-sm font-semibold text-gray-600 uppercase">Nama Vendor</th>
+                            <th class="text-left py-2 px-4 text-sm font-semibold text-gray-600 uppercase">Keterangan / Toko</th>
                             <th class="text-left py-2 px-4 text-sm font-semibold text-gray-600 uppercase">Proyek</th>
-                            <th class="text-left py-2 px-4 text-sm font-semibold text-gray-600 uppercase">Jumlah</th>
+                            <th class="text-left py-2 px-4 text-sm font-semibold text-gray-600 uppercase">Total</th>
                             <th class="text-left py-2 px-4 text-sm font-semibold text-gray-600 uppercase">Status</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
-                        @forelse($tagihanBelumLunas as $tagihan)
+                        @forelse($tagihanJatuhTempo as $tagihan)
+                            @php
+                                $dueDate = \Carbon\Carbon::parse($tagihan->tanggal_bayar);
+                                $diff = now()->startOfDay()->diffInDays($dueDate, false);
+                            @endphp
                             <tr>
-                                <td class="py-3 px-4">{{ $tagihan->nama_vendor }}</td>
+                                <td class="py-3 px-4">{{ $tagihan->toko }}</td>
                                 <td class="py-3 px-4">{{ $tagihan->proyek->nama_proyek ?? 'N/A' }}</td>
-                                <td class="py-3 px-4">Rp. {{ number_format($tagihan->nilai_tagihan, 0, ',', '.') }}</td>
+                                <td class="py-3 px-4">Rp. {{ number_format($tagihan->total, 0, ',', '.') }}</td>
                                 <td class="py-3 px-4">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                        {{ $tagihan->status_bayar }}
-                                    </span>
+                                    @if ($diff < 0)
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                            Terlambat {{ abs($diff) }} hari
+                                        </span>
+                                    @elseif ($diff == 0)
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                            Hari Ini
+                                        </span>
+                                    @else
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                            {{ $diff }} hari lagi
+                                        </span>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="py-4 text-center text-gray-500">Semua tagihan vendor sudah lunas.</td>
+                                <td colspan="4" class="py-4 text-center text-gray-500">Tidak ada tagihan yang akan jatuh tempo.</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
+    </div>
 
+    {{-- [DIUBAH] Baris Baru untuk Upah Tukang Belum Lunas --}}
+    <div class="grid grid-cols-1 gap-8">
         <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
             <h3 class="font-bold text-lg mb-4 text-gray-700">Upah Tukang Belum Lunas</h3>
             <div class="overflow-x-auto">
@@ -164,7 +182,7 @@
                     <tbody class="divide-y divide-gray-200">
                         @forelse($tukangBelumLunas as $tukang)
                             <tr>
-                                <td class="py-3 px-4">{{ $tukang->nama }}</td>
+                                <td class="py-3 px-4">{{ $tukang->nama_tukang }}</td>
                                 <td class="py-3 px-4">{{ $tukang->proyek->nama_proyek ?? 'N/A' }}</td>
                                 <td class="py-3 px-4">Rp. {{ number_format($tukang->jumlah, 0, ',', '.') }}</td>
                                 <td class="py-3 px-4">
@@ -182,12 +200,12 @@
                 </table>
             </div>
         </div>
-
     </div>
 </div>
 @endsection
 
 @push('scripts')
+{{-- Bagian script Chart.js (Tidak ada perubahan) --}}
 <script>
     const ctx = document.getElementById('projectExpenseChart');
     if (ctx) {

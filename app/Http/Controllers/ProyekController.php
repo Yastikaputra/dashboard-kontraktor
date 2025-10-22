@@ -7,36 +7,30 @@ use Illuminate\Http\Request;
 
 class ProyekController extends Controller
 {
-    /**
-     * Menampilkan daftar semua proyek.
-     */
     public function index()
     {
-        // [DIUBAH] Menggunakan withSum untuk efisiensi query
-        // Ini akan mengambil total dari kolom 'total' di tabel pengeluarans
-        // dan total dari kolom 'nilai_tagihan' di tabel tagihans
-        // lalu menyimpannya sebagai properti baru di model Proyek.
-        $proyeks = Proyek::withSum('pengeluarans', 'total')
-                         ->withSum('tagihans', 'nilai_tagihan') // Asumsi nama kolom nilai_tagihan
+        $proyeks = Proyek::withSum('pengeluarans as total_pengeluaran', 'total')
                          ->latest()
                          ->paginate(10);
                          
         return view('proyek.index', compact('proyeks'));
     }
 
-    // ... (sisa method lainnya tidak perlu diubah)
-
     /**
-     * Menampilkan form untuk membuat proyek baru.
+     * [BARU] Method untuk menampilkan halaman detail proyek
      */
+    public function show(Proyek $proyek)
+    {
+        // Memuat data pengeluaran yang terkait dengan proyek ini
+        $proyek->load('pengeluarans');
+        return view('proyek.show', compact('proyek'));
+    }
+
     public function create()
     {
         return view('proyek.create');
     }
 
-    /**
-     * Menyimpan proyek baru ke database dengan status default.
-     */
     public function store(Request $request)
     {
         $request->validate([
@@ -47,6 +41,7 @@ class ProyekController extends Controller
             'target_selesai' => 'required|date|after_or_equal:tanggal_mulai',
             'pic'            => 'required|string|max:255',
             'no_pic'         => 'required|string|max:20',
+            'deskripsi'      => 'nullable|string', // Validasi untuk deskripsi
         ]);
 
         $data = $request->all();
@@ -58,17 +53,11 @@ class ProyekController extends Controller
                          ->with('success', 'Proyek baru berhasil ditambahkan.');
     }
 
-    /**
-     * Menampilkan form untuk mengedit proyek.
-     */
     public function edit(Proyek $proyek)
     {
         return view('proyek.edit', compact('proyek'));
     }
 
-    /**
-     * Memperbarui data proyek di database.
-     */
     public function update(Request $request, Proyek $proyek)
     {
         $request->validate([
@@ -80,22 +69,20 @@ class ProyekController extends Controller
             'status'         => 'required|string',
             'pic'            => 'required|string|max:255',
             'no_pic'         => 'required|string|max:20',
+            'deskripsi'      => 'nullable|string', // Validasi untuk deskripsi
         ]);
-
+        
         $proyek->update($request->all());
 
         return redirect()->route('proyek.index')
                          ->with('success', 'Data proyek berhasil diperbarui.');
     }
 
-    /**
-     * Menghapus proyek dari database.
-     */
     public function destroy(Proyek $proyek)
     {
-        if ($proyek->pengeluarans()->count() > 0 || $proyek->tagihans()->count() > 0) {
+        if ($proyek->pengeluarans()->count() > 0) {
             return redirect()->route('proyek.index')
-                             ->with('error', 'Proyek tidak bisa dihapus karena memiliki data pengeluaran atau tagihan.');
+                             ->with('error', 'Proyek tidak bisa dihapus karena memiliki data pengeluaran.');
         }
 
         $proyek->delete();
@@ -103,16 +90,13 @@ class ProyekController extends Controller
         return redirect()->route('proyek.index')
                          ->with('success', 'Proyek berhasil dihapus.');
     }
-
-    /**
-     * Menandai proyek sebagai "Selesai".
-     */
-    public function tandaiSelesai($id)
+    
+    public function tandaiSelesai(Proyek $proyek)
     {
-        $proyek = Proyek::findOrFail($id);
         $proyek->status = 'Selesai';
         $proyek->save();
 
         return redirect()->route('proyek.index')->with('success', 'Status proyek berhasil diubah menjadi Selesai.');
     }
 }
+

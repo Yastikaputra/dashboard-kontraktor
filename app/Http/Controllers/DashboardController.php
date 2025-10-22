@@ -36,14 +36,20 @@ class DashboardController extends Controller
         
         $recentVendors = Tagihan::with('proyek')->latest()->take(5)->get();
 
-        // === [PERBAIKAN] Mengubah 'status' menjadi 'status_bayar' ===
-        // Mengambil data tagihan vendor yang belum lunas
-        $tagihanBelumLunas = Tagihan::where('status_bayar', '!=', 'Lunas')->with('proyek')->latest()->take(5)->get();
+        // [DIHAPUS] Logika lama untuk tagihan vendor belum lunas tidak digunakan lagi
+        // $tagihanBelumLunas = Tagihan::where('status_bayar', '!=', 'Lunas')->with('proyek')->latest()->take(5)->get();
 
-        // Mengambil data upah tukang yang belum lunas (pastikan nama kolom status di tabel tukang juga benar)
-        // Jika nama kolom di tabel tukang berbeda, sesuaikan 'status_bayar' di bawah ini
+        // [BARU] Mengambil data PENGELUARAN yang berstatus tagihan dan akan jatuh tempo
+        $tagihanJatuhTempo = Pengeluaran::where('status_bayar', 'Belum Bayar')
+                                        ->whereNotNull('tanggal_bayar')
+                                        ->where('tanggal_bayar', '<=', now()->addDays(7)) // Jatuh tempo dalam 7 hari ke depan atau sudah lewat
+                                        ->with('proyek')
+                                        ->orderBy('tanggal_bayar', 'asc') // Urutkan dari yang paling mendesak
+                                        ->take(5)
+                                        ->get();
+
+        // Mengambil data upah tukang yang belum lunas
         $tukangBelumLunas = Tukang::where('status', '!=', 'Lunas')->with('proyek')->latest()->take(5)->get();
-        // === AKHIR PERBAIKAN ===
 
         return view('dashboard.index', compact(
             'proyekBerjalan',
@@ -57,7 +63,7 @@ class DashboardController extends Controller
             'chartLabels',
             'chartValues',
             'recentVendors',
-            'tagihanBelumLunas',
+            'tagihanJatuhTempo', // Mengirim data tagihan jatuh tempo baru
             'tukangBelumLunas'
         ));
     }
